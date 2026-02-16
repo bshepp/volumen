@@ -1,0 +1,65 @@
+# ============================================
+# Vesuvius Challenge - .gitignore
+# ============================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# --- Virtual environments ---
+venv/
+env/
+.venv/
+.env/
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# --- OS ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Competition data (large TIFF volumes, ~42GB total) ---
+vesuvius-challenge-surface-detection/train_images/
+vesuvius-challenge-surface-detection/train_labels/
+vesuvius-challenge-surface-detection/deprecated_train_images/
+vesuvius-challenge-surface-detection/deprecated_train_labels/
+vesuvius-challenge-surface-detection/test/
+*.tif
+*.tiff
+*.zip
+
+# --- Model checkpoints and outputs (large binaries) ---
+outputs/
+outputs_v2/
+outputs_local/
+outputs_aws/
+*.pth
+*.pt
+*.onnx
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# --- AWS session artifacts (contain instance IDs, command IDs) ---
+aws/ssm-output.json
+aws/ssm-params.json
+aws/s3_images.txt
+
+# --- Logs ---
+*.log
+nohup.out

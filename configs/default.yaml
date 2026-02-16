@@ -1,0 +1,43 @@
+# Vesuvius Challenge - Surface Detection
+# Default training configuration
+# Target: AWS p3.2xlarge (V100 16GB) or g4dn.xlarge (T4 16GB)
+
+# Data
+data_dir: "vesuvius-challenge-surface-detection"
+patch_size: 128
+patches_per_volume: 4
+surface_bias: 0.7
+val_scrolls: "26002"  # matches test scroll
+
+# Model
+base_filters: 32
+depth: 4
+in_channels: 6
+num_classes: 3
+
+# Loss
+w_ce_dice: 0.4
+w_cldice: 0.3
+w_boundary: 0.3
+class_weights: [0.3, 3.0, 0.3]  # [background, surface, interior]
+cldice_iters: 10
+
+# Training
+epochs: 200
+batch_size: 2
+lr: 0.001
+weight_decay: 0.0001
+amp: true
+num_workers: 4
+save_every: 25
+
+# Inference
+inference_patch_size: 128
+inference_stride: 64
+use_tta: true
+
+# Post-processing
+min_component_size: 500
+bridge_threshold: 3
+fill_holes: true
+min_sheet_spacing: 10

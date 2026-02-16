@@ -1,0 +1,13 @@
+# Vesuvius Challenge - Surface Detection
+# Core dependencies
+torch>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+tifffile>=2023.1.0
+imagecodecs>=2023.1.0
+
+# Training utilities
+pyyaml>=6.0
+
+# Pipeline V2: skeleton computation
+scikit-image>=0.20.0
