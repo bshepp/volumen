@@ -6,7 +6,7 @@ $userData = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$PSScriptR
 
 aws ec2 run-instances `
   --image-id ami-0fe59b4f6e7e66c3e `
-  --instance-type g4dn.xlarge `
+  --instance-type g5.xlarge `
   --key-name 3body-compute `
   --security-group-ids sg-01db2d9932427a00a `
   --subnet-id subnet-0e58bf22b319ab3cc `

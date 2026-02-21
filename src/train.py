@@ -59,13 +59,17 @@ def train_one_epoch(
                 logits = model(features)
                 losses = loss_fn(logits, labels)
                 loss = losses["total"] / grad_accum_steps
-            scaler.scale(loss).backward()
+            finite = torch.isfinite(loss)
+            if finite.any() if loss.numel() > 1 else finite.item():
+                scaler.scale(loss).backward()
         else:
             features = feat_extractor(raw_images)
             logits = model(features)
             losses = loss_fn(logits, labels)
             loss = losses["total"] / grad_accum_steps
-            loss.backward()
+            finite = torch.isfinite(loss)
+            if finite.any() if loss.numel() > 1 else finite.item():
+                loss.backward()
 
         if (batch_idx + 1) % grad_accum_steps == 0:
             if use_amp:
@@ -78,18 +82,26 @@ def train_one_epoch(
                 optimizer.step()
             optimizer.zero_grad(set_to_none=True)
 
-        for k in running:
-            running[k] += losses[k].item()
-        n_batches += 1
+        # Accumulate for epoch average; skip nan/inf batches so they don't poison the log
+        if torch.isfinite(losses["total"]):
+            for k in running:
+                running[k] += losses[k].item()
+            n_batches += 1
+        else:
+            if batch_idx % 20 == 0 or batch_idx <= 2:
+                print(f"  [skip batch {batch_idx}: non-finite loss]")
 
         if batch_idx % 20 == 0:
-            print(
-                f"  Epoch {epoch} [{batch_idx}/{len(loader)}] "
-                f"loss={losses['total'].item():.4f} "
-                f"(ce_dice={losses['ce_dice'].item():.4f}, "
-                f"clDice={losses['cldice'].item():.4f}, "
-                f"boundary={losses['boundary'].item():.4f})"
-            )
+            if torch.isfinite(losses["total"]):
+                print(
+                    f"  Epoch {epoch} [{batch_idx}/{len(loader)}] "
+                    f"loss={losses['total'].item():.4f} "
+                    f"(ce_dice={losses['ce_dice'].item():.4f}, "
+                    f"clDice={losses['cldice'].item():.4f}, "
+                    f"boundary={losses['boundary'].item():.4f})"
+                )
+            else:
+                print(f"  Epoch {epoch} [{batch_idx}/{len(loader)}] loss=non-finite (skipped)")
 
     return {k: v / max(n_batches, 1) for k, v in running.items()}
 

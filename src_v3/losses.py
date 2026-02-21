@@ -74,9 +74,10 @@ class BoundaryLoss(nn.Module):
 
 
 class CompositeLossV3(nn.Module):
-    def __init__(self, w_focal_dice=0.3, w_skel=0.3, w_boundary=0.2, focal_gamma=2.0):
+    def __init__(self, w_focal_dice=0.3, w_skel=0.3, w_boundary=0.2,
+                 class_weights=(0.3, 3.0, 0.3), focal_gamma=2.0):
         super().__init__()
-        self.focal_dice = FocalDiceLoss(gamma=focal_gamma)
+        self.focal_dice = FocalDiceLoss(class_weights=class_weights, gamma=focal_gamma)
         self.skel_recall = SkeletonRecallLoss()
         self.boundary = BoundaryLoss()
         self.w_focal_dice = w_focal_dice

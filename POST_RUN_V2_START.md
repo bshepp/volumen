@@ -21,7 +21,7 @@ From the repo root, run:
 ```
 
 **Optional arguments:**
-- `-InstanceId i-xxxxxxxx` — use if your training instance ID is different (default: the current g4dn).
+- `-InstanceId i-xxxxxxxx` — use if your training instance ID is different.
 - `-SkipDownload` — run the instance script (upload to S3, clear, start V2) but do not download the best model to your machine.
 
 ## What the script does

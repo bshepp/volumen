@@ -1,6 +1,6 @@
 # Vesuvius Challenge - Surface Detection
 # Default training configuration
-# Target: AWS p3.2xlarge (V100 16GB) or g4dn.xlarge (T4 16GB)
+# Target: AWS g5.xlarge (A10G 24GB) or g4dn.xlarge (T4 16GB)
 
 # Data
 data_dir: "vesuvius-challenge-surface-detection"

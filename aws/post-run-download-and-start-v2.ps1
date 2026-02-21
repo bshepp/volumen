@@ -1,6 +1,6 @@
 # After V1 run completes (epoch 200): verify, run post-run script on instance, download best model.
 # Usage: .\aws\post-run-download-and-start-v2.ps1 [-InstanceId i-xxx] [-SkipDownload]
-# Requires: AWS CLI, instance ID (default from our g4dn training instance).
+# Requires: AWS CLI, instance ID (default from our training instance).
 
 param(
     [string]$InstanceId = "i-00035acc764c2bd27",

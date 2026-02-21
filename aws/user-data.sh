@@ -7,11 +7,15 @@ S3_BUCKET="vesuvius-challenge-training-290318"
 WORK_DIR="/home/ubuntu/vesuvius"
 DATA_DIR="${WORK_DIR}/data/vesuvius-challenge-surface-detection"
 CODE_DIR="${WORK_DIR}/code"
-OUTPUT_DIR="${WORK_DIR}/outputs"
+OUTPUT_V2="${WORK_DIR}/outputs_v2"
+
+# PIPELINE controls which pipeline trains on launch.
+# Set to "v2" or "v3". V1 is frozen (see PIPELINES.md).
+PIPELINE="${PIPELINE:-v2}"
 
 sleep 10
 
-mkdir -p "${WORK_DIR}" "${OUTPUT_DIR}"
+mkdir -p "${WORK_DIR}" "${OUTPUT_V2}"
 chown -R ubuntu:ubuntu "${WORK_DIR}"
 
 echo "=== Adding swap space ==="
@@ -40,26 +44,49 @@ echo "=== GPU Status ==="
 nvidia-smi
 python3 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, GPU: {torch.cuda.get_device_name(0)}')"
 
-echo "=== Starting training at $(date) ==="
+echo "=== Starting Pipeline ${PIPELINE} training at $(date) ==="
 chown -R ubuntu:ubuntu "${WORK_DIR}"
 
-su - ubuntu -c "cd ${CODE_DIR} && nohup python3 -u -m src.train \
-    --data-dir ${DATA_DIR} \
-    --output-dir ${OUTPUT_DIR} \
-    --epochs 200 \
-    --batch-size 2 \
-    --patch-size 128 \
-    --patches-per-volume 4 \
-    --surface-bias 0.7 \
-    --lr 1e-3 \
-    --weight-decay 1e-4 \
-    --base-filters 32 \
-    --depth 4 \
-    --cldice-iters 10 \
-    --val-scrolls 26002 \
-    --num-workers 4 \
-    --amp \
-    --save-every 25 \
-    > ${OUTPUT_DIR}/training.log 2>&1 &"
+if [ "${PIPELINE}" = "v3" ]; then
+    OUTPUT_DIR="${WORK_DIR}/outputs_v3"
+    mkdir -p "${OUTPUT_DIR}"
+    chown ubuntu:ubuntu "${OUTPUT_DIR}"
+    su - ubuntu -c "cd ${CODE_DIR} && nohup python3 -u -m src_v3.train \
+        --data-dir ${DATA_DIR} \
+        --output-dir ${OUTPUT_DIR} \
+        --epochs 200 \
+        --patch-size 128 \
+        --patches-per-volume 4 \
+        --surface-bias 0.7 \
+        --lr 1e-3 \
+        --weight-decay 1e-4 \
+        --base-filters 16 \
+        --focal-gamma 2.0 \
+        --skeleton-dilation 2 \
+        --val-scrolls 26002 \
+        --num-workers 4 \
+        --amp \
+        --save-every 25 \
+        > ${OUTPUT_DIR}/training.log 2>&1 &"
+else
+    su - ubuntu -c "cd ${CODE_DIR} && nohup python3 -u -m src_v2.train \
+        --data-dir ${DATA_DIR} \
+        --output-dir ${OUTPUT_V2} \
+        --epochs 200 \
+        --patch-size 128 \
+        --patches-per-volume 4 \
+        --surface-bias 0.7 \
+        --lr 1e-3 \
+        --weight-decay 1e-4 \
+        --base-filters 32 \
+        --depth 4 \
+        --focal-gamma 2.0 \
+        --skeleton-dilation 2 \
+        --val-scrolls 26002 \
+        --num-workers 4 \
+        --amp \
+        --save-every 25 \
+        > ${OUTPUT_V2}/training.log 2>&1 &"
+fi
 
 echo "=== Setup complete at $(date) ==="

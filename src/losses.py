@@ -54,9 +54,11 @@ class WeightedCEDiceLoss(nn.Module):
         Returns:
             Scalar loss.
         """
-        # Weighted cross-entropy
+        # Weighted cross-entropy (label_smoothing avoids log(0) in FP16 / confident wrong preds)
         ce_loss = F.cross_entropy(
-            logits, targets, weight=self.class_weights.to(logits.device)
+            logits, targets,
+            weight=self.class_weights.to(logits.device),
+            label_smoothing=0.01,
         )
 
         # Soft Dice loss (per-class, then averaged with weighting)

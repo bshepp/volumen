@@ -44,7 +44,7 @@ python -m src_v3.train --data-dir /path/to/data --output-dir outputs_v3 --epochs
 
 ## AWS
 
-- Instance type used: `g4dn.xlarge` (Tesla T4, 16GB VRAM, on-demand)
+- Instance type used: `g5.xlarge` (NVIDIA A10G, 24GB VRAM) — upgraded from g4dn.xlarge
 - User data script: `aws/user-data.sh`
 - See `AWS_RUN1_REPORT.md` for Run 1 details
 

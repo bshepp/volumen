@@ -45,6 +45,14 @@
 
 ## Issues Encountered and Fixes Applied
 
+### 0. NaN training loss (epochs 29+)
+- **Cause**: FP16 (AMP) + cross-entropy. When the model is very confident and wrong, softmax gives prob ≈ 0 for the correct class → `log(0) = -inf`; in FP16 this propagates to NaN. Occasional batches can also trigger NaNs in clDice (iterative soft skeletonization in FP16).
+- **Fixes applied** (in `src/train.py` and `src/losses.py`):
+  - **Label smoothing** (0.01) in `WeightedCEDiceLoss` so CE never sees exact 0/1 and avoids `log(0)`.
+  - **Skip backward/step** when `loss` is not finite so a bad batch does not corrupt the model.
+  - **Exclude non-finite batches** from the epoch running average so the printed "Train loss" is not NaN.
+- These changes apply to future runs (e.g. after syncing code to AWS). The current long-running job was started before the fix; best checkpoint is unchanged.
+
 ### 1. Spot Instance Quota = 0 for G-type
 - **Problem**: G and VT spot instance quota was 0 vCPUs
 - **Fix**: Used on-demand g4dn.xlarge (~$0.53/hr vs ~$0.21/hr spot)

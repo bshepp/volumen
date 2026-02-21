@@ -16,9 +16,11 @@ Push-Location $RepoRoot
 Write-Host "Uploading code to s3://$Bucket/$CodePrefix/ ..."
 # Sync src/ (Pipeline V1); exclude bytecode
 aws s3 sync src/ "s3://$Bucket/$CodePrefix/src/" --delete --exclude "__pycache__/*" --exclude "*.pyc"
-# Sync src_v2/ (Pipeline V2 - for post-run start)
+# Sync src_v2/ (Pipeline V2)
 aws s3 sync src_v2/ "s3://$Bucket/$CodePrefix/src_v2/" --delete --exclude "__pycache__/*" --exclude "*.pyc"
-# requirements.txt (includes scikit-image for V2)
+# Sync src_v3/ (Pipeline V3 - multi-scale fusion)
+aws s3 sync src_v3/ "s3://$Bucket/$CodePrefix/src_v3/" --delete --exclude "__pycache__/*" --exclude "*.pyc"
+# requirements.txt (includes scikit-image for V2/V3)
 aws s3 cp requirements.txt "s3://$Bucket/$CodePrefix/requirements.txt"
 # aws/*.sh so instance can run post-run script after V1 completes
 aws s3 sync aws/ "s3://$Bucket/$CodePrefix/aws/" --exclude "*.json" --exclude "*.ps1" --exclude "*.md"

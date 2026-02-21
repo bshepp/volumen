@@ -1,12 +1,32 @@
 # AWS Training Guide for Vesuvius Surface Detection
 
+## Upload code to S3 (before the next run)
+
+The instance gets code from S3 at launch (see `aws/user-data.sh`). To deploy your latest local code so the **next** run uses it:
+
+**From repo root (PowerShell):**
+```powershell
+.\aws\upload-code-to-s3.ps1
+```
+
+**Or manually:**
+```powershell
+aws s3 sync src/ s3://vesuvius-challenge-training-290318/code/src/ --delete
+aws s3 cp requirements.txt s3://vesuvius-challenge-training-290318/code/requirements.txt
+```
+
+- **New instance:** Launch as usual; user-data will `aws s3 sync` this code onto the instance.
+- **Existing instance:** SSH in and run `aws s3 sync s3://vesuvius-challenge-training-290318/code/ /home/ubuntu/vesuvius/code/ --region us-east-1`, then restart training if needed.
+
+---
+
 ## Quick Start
 
 ### 1. Launch Instance
-- **Recommended:** p3.2xlarge spot instance (V100 16GB, ~$1/hr spot)
-- **Budget option:** g4dn.xlarge (T4 16GB, ~$0.53/hr spot)
+- **Current:** g5.xlarge (A10G 24GB, ~$1.01/hr on-demand, ~$0.35/hr spot)
+- **Budget option:** g4dn.xlarge (T4 16GB, ~$0.53/hr on-demand)
 - **AMI:** Deep Learning AMI (Ubuntu 22.04) — comes with PyTorch, CUDA, etc.
-- **Storage:** 100 GB gp3 (dataset is ~27 GB, outputs ~2 GB)
+- **Storage:** 150 GB gp3 (dataset is ~27 GB, outputs ~2 GB)
 
 ### 2. Upload Data
 ```bash
@@ -32,46 +52,53 @@ pip install -r requirements.txt
 ```
 
 ### 5. Run Training
-```bash
-# Full training (200 epochs, ~10-15 hours on V100)
-DATA_DIR=/home/ubuntu/data/vesuvius-challenge-surface-detection \
-OUTPUT_DIR=/home/ubuntu/outputs \
-bash run_training.sh
 
-# Or with custom settings
-python -m src.train \
-    --data-dir /home/ubuntu/data/vesuvius-challenge-surface-detection \
-    --output-dir /home/ubuntu/outputs \
-    --epochs 200 \
-    --batch-size 2 \
-    --patch-size 128 \
-    --base-filters 32 \
-    --depth 4 \
-    --amp
+The `user-data.sh` script automatically launches V2 training on instance boot. To run manually or switch pipelines:
+
+```bash
+# Pipeline V2 (default — Focal + DeepSup + SkeletonRecall, ~8-12 hrs on A10G)
+python -m src_v2.train \
+    --data-dir /home/ubuntu/vesuvius/data/vesuvius-challenge-surface-detection \
+    --output-dir /home/ubuntu/vesuvius/outputs_v2 \
+    --epochs 200 --patch-size 128 --base-filters 32 --depth 4 \
+    --focal-gamma 2.0 --skeleton-dilation 2 --amp
+
+# Pipeline V3 (multi-scale fusion, ~12-18 hrs on A10G)
+python -m src_v3.train \
+    --data-dir /home/ubuntu/vesuvius/data/vesuvius-challenge-surface-detection \
+    --output-dir /home/ubuntu/vesuvius/outputs_v3 \
+    --epochs 200 --patch-size 128 --base-filters 16 \
+    --focal-gamma 2.0 --skeleton-dilation 2 --amp
 ```
+
+To launch V3 instead of V2 on boot, set `PIPELINE=v3` in `user-data.sh`.
 
 ### 6. Download Results
 ```bash
-scp ubuntu@<IP>:/home/ubuntu/outputs/best_model.pth ./outputs_aws/
-scp ubuntu@<IP>:/home/ubuntu/outputs/history.json ./outputs_aws/
+scp ubuntu@<IP>:/home/ubuntu/vesuvius/outputs_v2/best_model_v2.pth ./outputs_aws/
+scp ubuntu@<IP>:/home/ubuntu/vesuvius/outputs_v2/history_v2.json ./outputs_aws/
 ```
 
 ## Estimated Costs
 
-| Instance | GPU | Spot $/hr | Training Time | Total Cost |
-|----------|-----|-----------|---------------|------------|
-| p3.2xlarge | V100 16GB | ~$1.00 | ~10-15 hrs | ~$10-15 |
-| g4dn.xlarge | T4 16GB | ~$0.53 | ~20-25 hrs | ~$10-13 |
+| Instance | GPU | On-Demand $/hr | Spot $/hr | V2 Training (200 ep) | V3 Training (200 ep) |
+|----------|-----|----------------|-----------|----------------------|----------------------|
+| g5.xlarge | A10G 24GB | ~$1.01 | ~$0.35 | ~8-12 hrs | ~12-18 hrs |
+| g4dn.xlarge | T4 16GB | ~$0.53 | ~$0.21 | ~20-25 hrs | ~30-40 hrs |
 
 ## Training Configuration
 
-Default settings in `configs/default.yaml`:
-- Patch size: 128^3
-- Batch size: 2
-- Base filters: 32, Depth: 4 (27M params)
-- Loss: 0.4*(CE+Dice) + 0.3*clDice + 0.3*BoundaryLoss
-- Optimizer: AdamW, lr=1e-3, cosine annealing
-- Validation: scroll 26002 held out (matches test scroll)
+See `configs/default.yaml` and `configs/default_v3.yaml`. Key settings per pipeline:
+
+| Setting | V1 (frozen) | V2 (active) | V3 (active) |
+|---------|------------|-------------|-------------|
+| Patch size | 128³ | 128³ | 128³ |
+| Base filters | 32 | 32 | 16 |
+| Depth | 4 | 4 | 4/4/3 |
+| Params | 27M | ~27M | ~3.8M |
+| Loss | CE+Dice+clDice+Boundary | Focal+Dice+Skel+Boundary | Focal+Dice+Skel+Boundary |
+| Optimizer | AdamW, lr=1e-3, cosine | AdamW, lr=1e-3, cosine | AdamW, lr=1e-3, cosine |
+| Validation | scroll 26002 | scroll 26002 | scroll 26002 |
 
 ## After Training: Kaggle Submission
 

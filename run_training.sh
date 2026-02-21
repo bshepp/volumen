@@ -1,6 +1,6 @@
 #!/bin/bash
 # AWS training launch script for Vesuvius Surface Detection
-# Target: p3.2xlarge (V100 16GB) or g4dn.xlarge (T4 16GB) spot instance
+# Target: g5.xlarge (A10G 24GB) or g4dn.xlarge (T4 16GB) spot instance
 #
 # Usage:
 #   1. Upload this repo to the instance (or git clone)
