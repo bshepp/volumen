@@ -1,0 +1,1 @@
+{"commands":["grep 'Epoch.*/' /home/ubuntu/vesuvius/outputs_v3/training.log 2>/dev/null | tail -1; date -u +%Y-%m-%dT%H:%M:%SZ"]}

@@ -1,0 +1,1 @@
+{"commands":["tail -25 /var/log/vesuvius-setup.log 2>/dev/null; echo '===TRAINING==='; tail -10 /home/ubuntu/vesuvius/outputs_v3/training.log 2>/dev/null || echo 'NO_TRAINING_LOG_YET'; date -u +%Y-%m-%dT%H:%M:%SZ"]}

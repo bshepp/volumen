@@ -65,11 +65,10 @@ class FocalDiceLoss(nn.Module):
             Scalar loss (focal + dice).
         """
         num_classes = logits.shape[1]
-        probs = F.softmax(logits, dim=1)  # (B, C, Z, Y, X)
+        log_probs = F.log_softmax(logits, dim=1)  # (B, C, Z, Y, X)
+        probs = log_probs.exp()  # (B, C, Z, Y, X)
 
         # --- Focal loss ---
-        # Standard CE per-voxel
-        log_probs = F.log_softmax(logits, dim=1)  # (B, C, Z, Y, X)
         # Gather the log-prob and prob for the true class
         targets_one_hot = F.one_hot(targets, num_classes)  # (B, Z, Y, X, C)
         targets_one_hot = targets_one_hot.permute(0, 4, 1, 2, 3).float()  # (B, C, Z, Y, X)

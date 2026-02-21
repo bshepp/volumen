@@ -95,10 +95,20 @@ See `configs/default.yaml` and `configs/default_v3.yaml`. Key settings per pipel
 | Patch size | 128³ | 128³ | 128³ |
 | Base filters | 32 | 32 | 16 |
 | Depth | 4 | 4 | 4/4/3 |
-| Params | 27M | ~27M | ~3.8M |
+| Params | 27M | ~27M | ~15M |
 | Loss | CE+Dice+clDice+Boundary | Focal+Dice+Skel+Boundary | Focal+Dice+Skel+Boundary |
 | Optimizer | AdamW, lr=1e-3, cosine | AdamW, lr=1e-3, cosine | AdamW, lr=1e-3, cosine |
 | Validation | scroll 26002 | scroll 26002 | scroll 26002 |
+
+## Performance Optimizations (V2/V3)
+
+Both V2 and V3 training scripts enable three performance flags on CUDA:
+
+- **TF32 matmul precision** (`torch.set_float32_matmul_precision("medium")`): Uses Tensor Float 32 for matmuls on Ampere+ GPUs (A10G, A100). ~30-50% faster with negligible accuracy impact.
+- **cuDNN benchmark** (`torch.backends.cudnn.benchmark = True`): Auto-tunes convolution algorithms for fixed input sizes. ~5-15% faster.
+- **torch.compile** (`mode="reduce-overhead"`): JIT-compiles the model graph with kernel fusion. ~20-40% faster.
+
+These are applied automatically in `main()` when running on CUDA. No flags needed.
 
 ## After Training: Kaggle Submission
 

@@ -1,0 +1,1 @@
+{"commands":["tail -50 /home/ubuntu/vesuvius/outputs_v3/training.log 2>/dev/null | tr -d '\\200-\\377' || echo 'LOG_NOT_YET'; ls -lh /home/ubuntu/vesuvius/outputs_v3/best_model_v3.pth 2>/dev/null; ps aux | grep python | grep -v grep | tr -d '\\200-\\377' | head -5"]}

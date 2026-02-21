@@ -157,7 +157,10 @@ def main(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_amp = args.amp and device.type == "cuda"
-    print(f"Device: {device}, AMP: {use_amp}")
+    if device.type == "cuda":
+        torch.backends.cudnn.benchmark = True
+        torch.set_float32_matmul_precision("medium")
+    print(f"Device: {device}, AMP: {use_amp}, cuDNN benchmark: True, TF32: medium")
 
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -263,6 +266,12 @@ def main(args):
             best_val_loss = ckpt["best_val_loss"]
         print(f"  Resumed at epoch {start_epoch}, best_val_loss={best_val_loss:.4f}")
 
+    if hasattr(torch, "compile"):
+        model = torch.compile(model, mode="reduce-overhead")
+        print("[V3] Model compiled with torch.compile (reduce-overhead)")
+
+    raw_model = getattr(model, "_orig_mod", model)
+
     history = []
 
     for epoch in range(start_epoch, args.epochs + 1):
@@ -305,7 +314,7 @@ def main(args):
             torch.save(
                 {
                     "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
+                    "model_state_dict": raw_model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "scheduler_state_dict": scheduler.state_dict(),
                     "scaler_state_dict": scaler.state_dict(),
@@ -321,7 +330,7 @@ def main(args):
             torch.save(
                 {
                     "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
+                    "model_state_dict": raw_model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "scheduler_state_dict": scheduler.state_dict(),
                     "scaler_state_dict": scaler.state_dict(),

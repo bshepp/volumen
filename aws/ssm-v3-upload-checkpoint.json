@@ -1,0 +1,1 @@
+{"commands":["aws s3 cp /home/ubuntu/vesuvius/outputs_v3/best_model_v3.pth s3://vesuvius-challenge-training-290318/outputs_v3/best_model_v3.pth --region us-east-1 2>&1; echo EXIT=$?; ls -lh /home/ubuntu/vesuvius/outputs_v3/best_model_v3.pth 2>/dev/null; ls -lh /home/ubuntu/vesuvius/outputs_v3/checkpoint_v3_epoch*.pth 2>/dev/null; echo DONE"]}

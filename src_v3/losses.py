@@ -22,8 +22,8 @@ class FocalDiceLoss(nn.Module):
 
     def forward(self, logits, targets):
         num_classes = logits.shape[1]
-        probs = F.softmax(logits, dim=1)
         log_probs = F.log_softmax(logits, dim=1)
+        probs = log_probs.exp()
         targets_one_hot = F.one_hot(targets, num_classes).permute(0, 4, 1, 2, 3).float()
         p_t = (probs * targets_one_hot).sum(dim=1)
         log_p_t = (log_probs * targets_one_hot).sum(dim=1)

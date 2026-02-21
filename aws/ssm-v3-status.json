@@ -1,0 +1,1 @@
+{"commands":["echo STATUS; grep -c 'Epoch' /home/ubuntu/vesuvius/outputs_v3/training.log 2>/dev/null || echo 0; echo LAST; tail -5 /home/ubuntu/vesuvius/outputs_v3/training.log 2>/dev/null || echo 'NO_LOG'; echo SETUP; tail -3 /var/log/vesuvius-setup.log 2>/dev/null | tr -d '\\200-\\377'; date -u"]}
