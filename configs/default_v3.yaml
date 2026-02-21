@@ -1,0 +1,23 @@
+# Pipeline V3 — Multi-Scale Learned Fusion
+# Smaller base_filters (16) for 3 UNets + fusion on limited VRAM
+
+data_dir: "vesuvius-challenge-surface-detection"
+patch_size: 128
+patches_per_volume: 4
+surface_bias: 0.7
+val_scrolls: "26002"
+
+base_filters: 16
+in_channels: 6
+num_classes: 3
+
+epochs: 200
+lr: 0.001
+weight_decay: 0.0001
+amp: true
+num_workers: 4
+save_every: 25
+
+inference_patch_size: 128
+inference_stride: 64
+use_tta: true

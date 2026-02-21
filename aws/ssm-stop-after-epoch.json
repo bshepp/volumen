@@ -1,0 +1,1 @@
+{"commands":["nohup bash -c 'sleep 3420; pkill -f \"python3 -u -m src.train\"; echo \"V1 stopped after next epoch at $(date -u)\"' > /home/ubuntu/vesuvius/outputs/stop_after_epoch.log 2>&1 &", "echo 'Scheduled: V1 will be stopped in ~57 minutes (after next epoch). Check stop_after_epoch.log on instance.'"]}

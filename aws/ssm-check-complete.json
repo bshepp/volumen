@@ -1,0 +1,1 @@
+{"commands":["tail -5 /home/ubuntu/vesuvius/outputs/training.log 2>/dev/null; grep -c 'Training complete' /home/ubuntu/vesuvius/outputs/training.log 2>/dev/null || echo 0"]}

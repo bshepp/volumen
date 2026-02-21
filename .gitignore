@@ -45,6 +45,7 @@ vesuvius-challenge-surface-detection/test/
 # --- Model checkpoints and outputs (large binaries) ---
 outputs/
 outputs_v2/
+outputs_v3/
 outputs_local/
 outputs_aws/
 *.pth
@@ -58,6 +59,7 @@ notebooks/.ipynb_checkpoints/
 # --- AWS session artifacts (contain instance IDs, command IDs) ---
 aws/ssm-output.json
 aws/ssm-params.json
+aws/ssm-postrun.json
 aws/s3_images.txt
 
 # --- Logs ---

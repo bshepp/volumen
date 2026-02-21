@@ -10,7 +10,7 @@ The core architecture is a **3D U-Net** that takes raw CT volumes and produces p
 
 Training uses **volume-grouped batching** — each DataLoader item loads a single TIFF volume and extracts multiple patches, reducing disk I/O from O(batch_size) to O(1) per batch. Combined with mixed-precision training and surface-biased sampling, this saturates the GPU on even modest hardware.
 
-The project maintains two fully independent pipelines:
+The project maintains **three fully independent pipelines**. See [PIPELINES.md](PIPELINES.md) for full architecture documentation.
 
 ### Pipeline V1 (`src/`)
 
@@ -28,12 +28,17 @@ The project maintains two fully independent pipelines:
 | Loss | 0.3 × (Focal + Dice) + 0.3 × Skeleton Recall + 0.2 × Boundary, at 4 scales |
 | Dataset | Returns `(image, label, skeleton)` with precomputed skeletonization |
 
-V2 improvements:
-- **Focal Loss** replaces cross-entropy, down-weighting easy background voxels to focus on hard boundary cases
-- **Deep Supervision** provides gradient signal to all decoder stages via auxiliary 1x1x1 heads
-- **Skeleton Recall Loss** replaces clDice — uses precomputed skeletons from `skimage` (~90% cheaper than differentiable skeletonization)
+V2 improvements: Focal Loss, Deep Supervision, Skeleton Recall Loss (see [PIPELINES.md](PIPELINES.md)).
 
-The pipelines share zero imports. See [PIPELINES.md](PIPELINES.md) for full architecture documentation.
+### Pipeline V3 (`src_v3/`)
+
+| Component | Description |
+|-----------|-------------|
+| Model | `MultiScaleFusionUNet` — 3 UNets (32³, 64³, 128³) + learned fusion |
+| Loss | Focal+Dice + SkeletonRecall + Boundary on fused output |
+| Dataset | Returns `(image, label, skeleton)`, patch_size=128 |
+
+V3: Model learns to fuse predictions from multiple window sizes; fusion layer selects when to trust fine vs coarse scale. Pipelines share zero imports.
 
 ## Competition Metric
 
@@ -61,6 +66,9 @@ python -m src.train --data-dir vesuvius-challenge-surface-detection --output-dir
 
 # Pipeline V2
 python -m src_v2.train --data-dir vesuvius-challenge-surface-detection --output-dir outputs_v2 --epochs 200 --amp
+
+# Pipeline V3 (multi-scale learned fusion)
+python -m src_v3.train --data-dir vesuvius-challenge-surface-detection --output-dir outputs_v3 --epochs 200 --amp
 ```
 
 Key arguments:
@@ -91,6 +99,7 @@ run_inference(
 ```bash
 python smoke_test.py      # Pipeline V1
 python smoke_test_v2.py   # Pipeline V2
+python smoke_test_v3.py   # Pipeline V3
 ```
 
 ## Project Structure
@@ -112,10 +121,15 @@ volumen/
 │   ├── dataset.py        #   + skeleton precomputation
 │   ├── train.py          #   Adapted for deep supervision
 │   └── ...               #   Own copies of shared modules
+├── src_v3/               # Pipeline V3 (active, multi-scale fusion)
+│   ├── model.py          #   MultiScaleFusionUNet (32³, 64³, 128³)
+│   ├── losses.py         #   CompositeLossV3 on fused output
+│   ├── dataset.py        #   (image, label, skeleton), patch_size=128
+│   └── ...               #   Own copies of shared modules
 ├── aws/                  # EC2 launch scripts & IAM policies
 ├── configs/              # Training configuration
 ├── notebooks/            # Kaggle submission notebook
-├── PIPELINES.md          # Dual pipeline documentation
+├── PIPELINES.md          # Multi-pipeline documentation
 ├── CLAUDE.md             # Agent instructions
 ├── COMPETITION_NOTES.md  # Competition rules & dataset analysis
 └── requirements.txt

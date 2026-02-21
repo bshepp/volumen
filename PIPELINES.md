@@ -1,17 +1,17 @@
-# Vesuvius Challenge — Dual Pipeline Documentation
+# Vesuvius Challenge — Multi Pipeline Documentation
 
 ## Overview
 
-This project contains **two completely independent** training/inference pipelines for the Vesuvius Challenge surface detection task. They share **no code** at the Python import level. Either pipeline can be deleted without affecting the other.
+This project contains **three completely independent** training/inference pipelines for the Vesuvius Challenge surface detection task. They share **no code** at the Python import level. Any pipeline can be deleted without affecting the others.
 
 ---
 
 ## ⚠️  CRITICAL: DO NOT MIX PIPELINES
 
-- **Never** import from `src/` inside `src_v2/` or vice versa.
-- **Never** load a V1 checkpoint into a V2 model or vice versa. The architectures differ (V2 has auxiliary heads).
-- **Never** share a `DataLoader` between pipelines. V2's dataset returns 3-tuples `(image, label, skeleton)`; V1's returns 2-tuples `(image, label)`.
-- Outputs are saved with different filenames (`best_model.pth` vs `best_model_v2.pth`, `history.json` vs `history_v2.json`) to avoid accidental overwrites.
+- **Never** import from `src/` inside `src_v2/` or `src_v3/`, or vice versa.
+- **Never** load a V1 checkpoint into a V2/V3 model or vice versa. The architectures differ.
+- **Never** share a `DataLoader` between pipelines. V2 and V3 return 3-tuples `(image, label, skeleton)`; V1 returns 2-tuples `(image, label)`.
+- Outputs are saved with different filenames (`best_model.pth`, `best_model_v2.pth`, `best_model_v3.pth`, etc.) to avoid accidental overwrites.
 
 ---
 
@@ -111,15 +111,50 @@ At each auxiliary scale, the same formula is applied to downsampled targets.
 
 ---
 
+## Pipeline V3 — `src_v3/`
+
+| Component  | File                | Description                                           |
+|------------|---------------------|-------------------------------------------------------|
+| Model      | `src_v3/model.py`   | `MultiScaleFusionUNet` — 3 UNets (32³, 64³, 128³) + learned fusion |
+| Losses     | `src_v3/losses.py`  | `CompositeLossV3`: Focal+Dice + SkeletonRecall + Boundary on fused output |
+| Dataset    | `src_v3/dataset.py` | Returns `(image, label, skeleton)` 3-tuples, patch_size=128 |
+| Features   | `src_v3/features.py`| `GPUFeatureExtractor` (own copy)                      |
+| Training   | `src_v3/train.py`   | Training loop for multi-scale fusion model            |
+| Inference  | `src_v3/inference.py`| Sliding window 128³, model handles multi-scale internally |
+| Postproc   | `src_v3/postprocess.py`| Same as V1/V2 (own copy)                           |
+| Evaluation | `src_v3/evaluate.py`| Same as V1/V2 (own copy)                              |
+
+### How to train V3
+
+```bash
+python -m src_v3.train --data-dir /path/to/data --output-dir outputs_v3 --epochs 200 --amp
+```
+
+### Architecture
+
+The model learns to fuse predictions from multiple window sizes (32³, 64³, 128³). Center crops are extracted from the 128³ input; each scale gets its own UNet; outputs are upsampled and fused via a 1×1×1 conv.
+
+```
+Input (B, 6, 128, 128, 128)
+  → Branch 1: full 128³ → UNet → logits_128
+  → Branch 2: center 64³ → UNet → logits_64 → upsample to 128³
+  → Branch 3: center 32³ → UNet → logits_32 → upsample to 128³
+  → Concat → Conv3d(9, 3, 1) → fused logits (B, 3, 128, 128, 128)
+```
+
+The fusion layer learns when to trust fine vs coarse scale. Checkpoints include `"pipeline": "v3"`.
+
+---
+
 ## File duplication is intentional
 
-`src_v2/features.py`, `src_v2/postprocess.py`, and `src_v2/evaluate.py` are exact copies of their `src/` counterparts. This is **by design**: it ensures complete isolation between the two pipelines. A future agent or developer can confidently modify V2 files without any risk of breaking V1.
+`src_v2/` and `src_v3/` each have their own copies of `features.py`, `postprocess.py`, and `evaluate.py`. This is **by design**: it ensures complete isolation. Modify V2 or V3 files without risk of breaking V1.
 
 ---
 
 ## Checkpoint format
 
-Both pipelines save checkpoints with the same dict structure:
+All pipelines save checkpoints with the same dict structure:
 
 ```python
 {
@@ -130,14 +165,14 @@ Both pipelines save checkpoints with the same dict structure:
     "scaler_state_dict": dict,
     "best_val_loss": float,
     "val_metrics": dict,       # only in best_model checkpoints
-    "pipeline": "v2",          # V2 only — V1 checkpoints lack this key
+    "pipeline": "v2" | "v3",   # V2/V3 only — V1 checkpoints lack this key
 }
 ```
 
-V2 checkpoints include a `"pipeline": "v2"` key. V1 checkpoints do not have this key. This can be used to detect which pipeline produced a checkpoint.
+V2 checkpoints include `"pipeline": "v2"`; V3 includes `"pipeline": "v3"`. V1 checkpoints do not have this key.
 
 ---
 
 ## Dependencies
 
-Both pipelines require the packages listed in `requirements.txt`. V2 additionally requires `scikit-image` (for `skimage.morphology.skeletonize`).
+All pipelines require the packages listed in `requirements.txt`. V2 and V3 additionally require `scikit-image` (for `skimage.morphology.skeletonize`).

@@ -1,0 +1,1 @@
+{"commands":["grep -E '\\[V2\\] Train loss:.*Val loss:' /home/ubuntu/vesuvius/outputs_v2/training.log 2>/dev/null | tail -80"]}
