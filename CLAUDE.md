@@ -79,7 +79,7 @@ python -m src_v3.train --data-dir /path/to/data --output-dir outputs_v3 --epochs
 
 - All training instances have been **terminated** (Feb 27, 2026).
 - V2 ran on g4dn.xlarge (T4), V3 ran on g5.xlarge (A10G).
-- See `AWS_TRAINING.md` for setup guide and `AWS_RUN1_REPORT.md` for V1 run history.
+- See `AWS_TRAINING.md` for setup guide and `docs/archive/AWS_RUN1_REPORT.md` for V1 run history.
 
 ## V3 NaN Issue (Fixed)
 

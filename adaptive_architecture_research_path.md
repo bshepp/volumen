@@ -16,7 +16,7 @@ These results confirm that scroll volume data -- with its heterogeneous structur
 
 ### 1.1 Baseline Performance (as of February 9, 2026)
 
-All pipelines use the same validation split (scroll ID `26002`, 82 samples) and identical evaluation metrics. See `PIPELINES.md` for full architecture details and `AWS_RUN1_REPORT.md` for V1 run history.
+All pipelines use the same validation split (scroll ID `26002`, 82 samples) and identical evaluation metrics. See `PIPELINES.md` for full architecture details and `docs/archive/AWS_RUN1_REPORT.md` for V1 run history.
 
 | | V1 (`src/`) | V2 (`src_v2/`) | V3 (`src_v3/`) |
 |---|---|---|---|
@@ -206,7 +206,7 @@ Each experiment in this document is a step toward that vision, testing whether a
 
 All project paths are relative to the repository root. If files have been moved or renamed since this document was written, check the repo root for current locations. `PIPELINES.md` is the canonical reference for pipeline structure and should be updated first if the project layout changes.
 
-- **Project documentation:** `PIPELINES.md`, `CLAUDE.md`, `AWS_TRAINING.md`, `AWS_RUN1_REPORT.md`
+- **Project documentation:** `PIPELINES.md`, `CLAUDE.md`, `AWS_TRAINING.md`, `docs/archive/AWS_RUN1_REPORT.md`
 - **Pipeline source:** `src/` (V1, frozen), `src_v2/` (V2, completed), `src_v3/` (V3, paused at ~53 epochs)
 - **Kendall et al.** "Multi-Task Learning Using Uncertainty to Weigh Losses for Scene Geometry and Semantics" (CVPR 2018)
 - **Hu et al.** "Squeeze-and-Excitation Networks" (CVPR 2018)
