@@ -57,9 +57,7 @@ outputs_aws/
 notebooks/.ipynb_checkpoints/
 
 # --- AWS session artifacts (contain instance IDs, command IDs) ---
-aws/ssm-output.json
-aws/ssm-params.json
-aws/ssm-postrun.json
+aws/ssm-*.json
 aws/s3_images.txt
 
 # --- Logs ---

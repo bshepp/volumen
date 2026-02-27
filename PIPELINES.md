@@ -45,7 +45,7 @@ Input (B, 1, Z, Y, X)
 
 ### Status
 
-**Frozen.** This pipeline was the first run trained on AWS (g4dn.xlarge). Do not modify these files.
+**Frozen.** Completed 200 epochs on AWS (g4dn.xlarge). Best val_loss: 1.3639, surface Dice: 0.1162. Do not modify these files. Checkpoint: `outputs_aws/v1/best_model_v1.pth`.
 
 ---
 
@@ -109,6 +109,10 @@ L = 0.3 × (Focal + Dice) + 0.3 × SkeletonRecall + 0.2 × Boundary
 
 At each auxiliary scale, the same formula is applied to downsampled targets.
 
+### Status
+
+**Frozen.** Completed 200 epochs on AWS (g4dn.xlarge, T4 16GB). Best val_loss: **0.6728**, surface Dice: **0.2538** — the best-performing pipeline overall. Do not modify these files. Checkpoints: `outputs_aws/v2/best_model_v2.pth`, `checkpoint_v2_epoch25.pth`, `checkpoint_v2_epoch200.pth`.
+
 ---
 
 ## Pipeline V3 — `src_v3/`
@@ -143,6 +147,10 @@ Input (B, 6, 128, 128, 128)
 ```
 
 The fusion layer learns when to trust fine vs coarse scale. Checkpoints include `"pipeline": "v3"`.
+
+### Status
+
+**Paused.** Trained ~53 epochs on AWS (g5.xlarge, A10G 24GB) before hitting NaN loss at epoch ~55 due to FP16/AMP instability. Best val_loss: 0.7016, surface Dice: 0.2258 (from before NaN divergence). **NaN guards now implemented:** FP32 loss computation (`@torch.amp.custom_fwd(cast_inputs=torch.float32)`) and `isfinite` skip in the training loop. To resume, use `checkpoint_v3_epoch50.pth`. Checkpoints: `outputs_aws/v3/best_model_v3.pth`, `checkpoint_v3_epoch25.pth`, `checkpoint_v3_epoch50.pth`.
 
 ---
 

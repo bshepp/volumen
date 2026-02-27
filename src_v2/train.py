@@ -73,13 +73,19 @@ def train_one_epoch(
                 outputs = model(features)  # dict with "logits", "aux_1", etc.
                 losses = loss_fn(outputs, labels, skeletons)
                 loss = losses["total"] / grad_accum_steps
-            scaler.scale(loss).backward()
+            if torch.isfinite(loss):
+                scaler.scale(loss).backward()
+            else:
+                optimizer.zero_grad(set_to_none=True)
         else:
             features = feat_extractor(raw_images)
             outputs = model(features)
             losses = loss_fn(outputs, labels, skeletons)
             loss = losses["total"] / grad_accum_steps
-            loss.backward()
+            if torch.isfinite(loss):
+                loss.backward()
+            else:
+                optimizer.zero_grad(set_to_none=True)
 
         if (batch_idx + 1) % grad_accum_steps == 0:
             if use_amp:
@@ -92,18 +98,25 @@ def train_one_epoch(
                 optimizer.step()
             optimizer.zero_grad(set_to_none=True)
 
-        for k in running:
-            running[k] += losses[k].item()
-        n_batches += 1
+        if torch.isfinite(losses["total"]):
+            for k in running:
+                running[k] += losses[k].item()
+            n_batches += 1
+        else:
+            if batch_idx % 20 == 0 or batch_idx <= 2:
+                print(f"  [V2] [skip batch {batch_idx}: non-finite loss]")
 
         if batch_idx % 20 == 0:
-            print(
-                f"  [V2] Epoch {epoch} [{batch_idx}/{len(loader)}] "
-                f"loss={losses['total'].item():.4f} "
-                f"(focal_dice={losses['focal_dice'].item():.4f}, "
-                f"skel_recall={losses['skel_recall'].item():.4f}, "
-                f"boundary={losses['boundary'].item():.4f})"
-            )
+            if torch.isfinite(losses["total"]):
+                print(
+                    f"  [V2] Epoch {epoch} [{batch_idx}/{len(loader)}] "
+                    f"loss={losses['total'].item():.4f} "
+                    f"(focal_dice={losses['focal_dice'].item():.4f}, "
+                    f"skel_recall={losses['skel_recall'].item():.4f}, "
+                    f"boundary={losses['boundary'].item():.4f})"
+                )
+            else:
+                print(f"  [V2] Epoch {epoch} [{batch_idx}/{len(loader)}] loss=non-finite (skipped)")
 
     return {k: v / max(n_batches, 1) for k, v in running.items()}
 
@@ -278,7 +291,7 @@ def main(args):
     )
     scaler = GradScaler("cuda", enabled=use_amp)
 
-    # Resume from checkpoint (before torch.compile to avoid key mismatch)
+    # Resume from checkpoint
     start_epoch = 1
     best_val_loss = float("inf")
     if args.resume and os.path.exists(args.resume):
@@ -297,12 +310,7 @@ def main(args):
             best_val_loss = ckpt["best_val_loss"]
         print(f"  Resumed at epoch {start_epoch}, best_val_loss={best_val_loss:.4f}")
 
-    if hasattr(torch, "compile"):
-        model = torch.compile(model, mode="reduce-overhead")
-        print("[V2] Model compiled with torch.compile (reduce-overhead)")
-
     # Training loop
-    raw_model = getattr(model, "_orig_mod", model)
     history = []
 
     for epoch in range(start_epoch, args.epochs + 1):
@@ -345,7 +353,7 @@ def main(args):
             torch.save(
                 {
                     "epoch": epoch,
-                    "model_state_dict": raw_model.state_dict(),
+                    "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "scheduler_state_dict": scheduler.state_dict(),
                     "scaler_state_dict": scaler.state_dict(),
@@ -361,7 +369,7 @@ def main(args):
             torch.save(
                 {
                     "epoch": epoch,
-                    "model_state_dict": raw_model.state_dict(),
+                    "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "scheduler_state_dict": scheduler.state_dict(),
                     "scaler_state_dict": scaler.state_dict(),

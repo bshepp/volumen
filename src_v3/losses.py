@@ -20,6 +20,7 @@ class FocalDiceLoss(nn.Module):
         self.gamma = gamma
         self.dice_smooth = dice_smooth
 
+    @torch.amp.custom_fwd(device_type="cuda", cast_inputs=torch.float32)
     def forward(self, logits, targets):
         num_classes = logits.shape[1]
         log_probs = F.log_softmax(logits, dim=1)
@@ -45,6 +46,7 @@ class SkeletonRecallLoss(nn.Module):
         super().__init__()
         self.smooth = smooth
 
+    @torch.amp.custom_fwd(device_type="cuda", cast_inputs=torch.float32)
     def forward(self, logits, targets, skeleton):
         pred_surface = F.softmax(logits, dim=1)[:, 1]
         skel = skeleton.float()
@@ -54,6 +56,7 @@ class SkeletonRecallLoss(nn.Module):
 
 
 class BoundaryLoss(nn.Module):
+    @torch.amp.custom_fwd(device_type="cuda", cast_inputs=torch.float32)
     def forward(self, logits, targets):
         pred_surface = F.softmax(logits, dim=1)[:, 1]
         batch_size = targets.shape[0]

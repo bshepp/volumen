@@ -40,6 +40,16 @@ V2 improvements: Focal Loss, Deep Supervision, Skeleton Recall Loss (see [PIPELI
 
 V3: Model learns to fuse predictions from multiple window sizes; fusion layer selects when to trust fine vs coarse scale. Pipelines share zero imports.
 
+### Results
+
+| Pipeline | Best Val Loss | Surface Dice | Epochs | GPU |
+|----------|--------------|-------------|--------|-----|
+| V1       | 1.3639       | 0.1162      | 200/200 | T4 |
+| **V2**   | **0.6728**   | **0.2538**  | 200/200 | T4 |
+| V3       | 0.7016       | 0.2258      | ~53/200 | A10G |
+
+V2 is the best-performing pipeline. V3 training paused due to NaN divergence at epoch ~55 (FP16/AMP instability). See [PIPELINES.md](PIPELINES.md) for details.
+
 ## Competition Metric
 
 **Score = 0.30 × TopoScore + 0.35 × SurfaceDice@τ + 0.35 × VOI_score**
@@ -54,7 +64,7 @@ cd volumen
 pip install -r requirements.txt
 ```
 
-**Requirements:** Python 3.10+, PyTorch 2.0+, CUDA-capable GPU (tested on Tesla T4 16GB).
+**Requirements:** Python 3.10+, PyTorch 2.0+, CUDA-capable GPU (tested on Tesla T4 16GB, NVIDIA A10G 24GB).
 
 **Data:** Download from the [Kaggle competition page](https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/data) and place in `vesuvius-challenge-surface-detection/`.
 
@@ -115,13 +125,13 @@ volumen/
 │   ├── inference.py      #   Sliding window + TTA
 │   ├── postprocess.py    #   Topology-aware post-processing
 │   └── evaluate.py       #   Competition metric
-├── src_v2/               # Pipeline V2 (active)
+├── src_v2/               # Pipeline V2 (completed, best model)
 │   ├── model.py          #   UNet3DDeepSup (deep supervision)
 │   ├── losses.py         #   Focal+Dice, Skeleton Recall, Boundary
 │   ├── dataset.py        #   + skeleton precomputation
 │   ├── train.py          #   Adapted for deep supervision
 │   └── ...               #   Own copies of shared modules
-├── src_v3/               # Pipeline V3 (active, multi-scale fusion)
+├── src_v3/               # Pipeline V3 (paused, multi-scale fusion)
 │   ├── model.py          #   MultiScaleFusionUNet (32³, 64³, 128³)
 │   ├── losses.py         #   CompositeLossV3 on fused output
 │   ├── dataset.py        #   (image, label, skeleton), patch_size=128
