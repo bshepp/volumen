@@ -1,8 +1,8 @@
 # volumen
-THIS IS TRASH AND COMPLETE WASTE OF TIME AND MONEY.  THERE ARE 2000+ BETTER MODELS THEN THIS.  AI: "OH IM GETTING OOM ON THE GPU LETS USE THE CPU" *PROCEEDS TO TIME OUT DUE TO OOM.
-~~3D surface segmentation of ancient Herculaneum papyrus scrolls from micro-CT scans. Built for the [Vesuvius Challenge](https://scrollprize.org/) [$200K Surface Detection competition]~~~~(~~https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection) on Kaggle.~~
 
-~~The Herculaneum scrolls were carbonized by the eruption of Mount Vesuvius in 79 AD. This project detects the recto papyrus surface in volumetric CT data — a critical step in the virtual~~ ~~unwrapping pipeline that is enabling these ancient texts to be read for the first time in two millennia.~~
+3D surface segmentation of ancient Herculaneum papyrus scrolls from micro-CT scans. Built for the [Vesuvius Challenge](https://scrollprize.org/) [$200K Surface Detection competition](https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection) on Kaggle.
+
+The Herculaneum scrolls were carbonized by the eruption of Mount Vesuvius in 79 AD. This project detects the recto papyrus surface in volumetric CT data — a critical step in the virtual unwrapping pipeline that is enabling these ancient texts to be read for the first time in two millennia.
 
 ## Approach
 
@@ -145,12 +145,12 @@ volumen/
 └── requirements.txt
 ```
 
-~~## Citation~~
+## Citation
 
-~~This project uses the EduceLab-Scrolls dataset:~~
+This project uses the EduceLab-Scrolls dataset:
 
-~~> S. Parker, C. Parsons, and W. B. Seales. "EduceLab-Scrolls: Verifiable Recovery of Text from Herculaneum Papyri using X-ray CT." arXiv:2304.02084, 2023.~~
+> S. Parker, C. Parsons, and W. B. Seales. "EduceLab-Scrolls: Verifiable Recovery of Text from Herculaneum Papyri using X-ray CT." arXiv:2304.02084, 2023.
 
-~~## License~~
+## License
 
-~~[CC BY-NC 4.0](LICENSE) — as required by the Vesuvius Challenge competition rules.~~
+[CC BY-NC 4.0](LICENSE) — as required by the Vesuvius Challenge competition rules.
