@@ -125,17 +125,43 @@ These are applied automatically in `main()` when running on CUDA. No flags neede
 
 **Removed:** `torch.compile(mode="reduce-overhead")` was tested during V3 epochs 7-26 and showed no measurable speedup for our 3D conv-heavy models (epoch times remained ~134 min, identical to pre-compile). The compilation overhead and checkpoint complexity (`_orig_mod.` key prefix) were not worth the zero benefit. Removed Feb 9, 2026.
 
-## After Training: Kaggle Submission
+## Kaggle Submission
 
-The best model for submission is **V2** (`outputs_aws/v2/best_model_v2.pth`, val_loss=0.6728, surface Dice=0.2538).
+The best model for submission is **V2** (`outputs_aws/v2/best_model_v2.pth`, val_loss=0.6728, surface Dice=0.2538) with the 1st place post-processing pipeline.
 
-1. Upload `best_model_v2.pth` as a Kaggle Dataset (e.g., "vesuvius-model-weights")
+### Setup
+
+1. Upload `best_model_v2.pth` as a Kaggle Model (slug: `vesuvius-v2-weights`, framework: `pytorch`)
 2. Create a new Kaggle Notebook from `notebooks/submission.ipynb`
 3. Add both datasets: competition data + your model weights
-4. Update `MODEL_DIR` path in the notebook config cell
-5. Enable GPU, commit and submit
+4. Add `imagecodecs` via Kaggle's Dependency Manager (Settings > Dependency Manager) — Kaggle's offline environment cannot `pip install`
+5. Set GPU accelerator, commit and submit
 
-**Note:** Use the V2 model (`UNet3DDeepSup`) and V2 inference code (`src_v2/inference.py`) for the submission notebook.
+### Submission notebook settings
+
+```
+MODEL_DIR = /kaggle/input/models/briansheppard/vesuvius-v2-weights/pytorch/default/1
+PATCH_SIZE = 64        # reduced from 128 to fit T4 GPU memory
+STRIDE = 32
+BATCH_SIZE = 1
+USE_TTA = True         # 8-flip test-time augmentation
+USE_POSTPROCESS = True # 1st place post-processing pipeline
+```
+
+### Results
+
+| Version | Description | Public LB | Private LB | Notes |
+|---------|-------------|-----------|------------|-------|
+| V5 | Original postproc, TTA=True | 0.390 | 0.409 | Scored |
+| V6-V9 | 1st-place postproc, cuda/amp variants | — | — | Late, not scored |
+
+Scored submission: **0.390 public / 0.409 private**, ~1240th on private LB.
+
+### Lessons learned
+
+- **Patch size matters for GPU memory**: `PATCH_SIZE=128` OOMs on Kaggle's T4 (15GB). `PATCH_SIZE=64` with `STRIDE=32` fits comfortably and runs at ~30 min/volume.
+- **CPU inference is too slow**: The hidden test set has many volumes; CPU inference exceeds the 9-hour time limit.
+- **`imagecodecs` must be pre-installed**: Kaggle submission kernels have no internet access. Use the Dependency Manager, not `pip install`.
 
 ## Local Validation Results (5 epochs, reduced model)
 

@@ -10,7 +10,7 @@ The core architecture is a **3D U-Net** that takes raw CT volumes and produces p
 
 Training uses **volume-grouped batching** — each DataLoader item loads a single TIFF volume and extracts multiple patches, reducing disk I/O from O(batch_size) to O(1) per batch. Combined with mixed-precision training and surface-biased sampling, this saturates the GPU on even modest hardware.
 
-The project maintains **three fully independent pipelines**. See [PIPELINES.md](PIPELINES.md) for full architecture documentation.
+The project maintains **four fully independent pipelines**. See [PIPELINES.md](PIPELINES.md) for full architecture documentation.
 
 ### Pipeline V1 (`src/`)
 
@@ -40,6 +40,16 @@ V2 improvements: Focal Loss, Deep Supervision, Skeleton Recall Loss (see [PIPELI
 
 V3: Model learns to fuse predictions from multiple window sizes; fusion layer selects when to trust fine vs coarse scale. Pipelines share zero imports.
 
+### Pipeline nnU-Net (`src_nnunet/`)
+
+| Component | Description |
+|-----------|-------------|
+| Model | nnU-Net v2 — self-configuring 3D U-Net (1st place architecture) |
+| Training | Automated via Hugging Face Jobs (A10G GPU) |
+| Post-proc | 1st place pipeline (binary closing, height-map patching, hole plugging) |
+
+The 1st place team's single nnU-Net scored **0.577/0.614** (public/private) at 250 epochs. Training is currently in progress on Hugging Face Jobs.
+
 ### Results
 
 | Pipeline | Best Val Loss | Surface Dice | Epochs | GPU |
@@ -47,14 +57,39 @@ V3: Model learns to fuse predictions from multiple window sizes; fusion layer se
 | V1       | 1.3639       | 0.1162      | 200/200 | T4 |
 | **V2**   | **0.6728**   | **0.2538**  | 200/200 | T4 |
 | V3       | 0.7016       | 0.2258      | ~53/200 | A10G |
+| nnU-Net  | —            | —           | training | A10G (HF Jobs) |
 
-V2 is the best-performing pipeline. V3 training paused due to NaN divergence at epoch ~55 (FP16/AMP instability). See [PIPELINES.md](PIPELINES.md) for details.
+V2 is the best-performing custom pipeline. V3 training paused due to NaN divergence at epoch ~55 (FP16/AMP instability). nnU-Net training is in progress on Hugging Face Jobs. See [PIPELINES.md](PIPELINES.md) for details.
+
+### Kaggle Submission Results
+
+| Version | Description | Public LB | Private LB |
+|---------|-------------|-----------|------------|
+| V5 | V2 + original postproc, TTA=True | 0.390 | 0.409 |
+| V6 | V2 + TTA=True (late) | — | — |
+| V7 | V2 + cuda, amp=True (late) | — | — |
+| V8 | V2 + 1st-place post-processing (late) | — | — |
+| V9 | V2 + latest (late) | — | — |
+
+Scored submission: **0.390 public / 0.409 private** (~1240th on private LB). The model scored *higher* on the unseen 80% private data than on the 20% public test, indicating strong generalization. Late submissions (after deadline) completed successfully but are not scored.
 
 ## Competition Metric
 
 **Score = 0.30 × TopoScore + 0.35 × SurfaceDice@τ + 0.35 × VOI_score**
 
-The metric rewards topological correctness (no mergers between sheets, no spurious holes) alongside geometric accuracy. Post-processing includes connected component filtering, bridge detection/removal, hole filling, and physics-based sheet spacing validation.
+The metric rewards topological correctness (no mergers between sheets, no spurious holes) alongside geometric accuracy.
+
+## Post-Processing
+
+V2 uses a post-processing pipeline adapted from the **1st place solution** for the Vesuvius Challenge Surface Detection competition ([writeup](https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/1st-place-solution-for-the-vesuvius-challenge-su)):
+
+1. **Connected component filtering** — remove small fragments
+2. **Per-sheet binary closing** — `scipy.ndimage.binary_closing` with a spherical footprint (radius 3), applied per connected component to avoid merging nearby sheets
+3. **Height-map patching** — project each sheet to 2D along its best axis, build height/thickness maps, fill gaps via linear interpolation in both row and column directions with distance-weighted averaging, reconstruct 3D voxels, and discard patches that introduce new holes
+4. **1-voxel hole plugging** — 256-entry lookup table over 2×2×2 neighborhoods that detects face-diagonal gaps and adds bridging voxels for 6-connected watertightness
+5. **Global binary fill holes** — `scipy.ndimage.binary_fill_holes` for remaining enclosed cavities
+
+See `src_v2/postprocess.py` for the implementation.
 
 ## Setup
 
@@ -79,6 +114,10 @@ python -m src_v2.train --data-dir vesuvius-challenge-surface-detection --output-
 
 # Pipeline V3 (multi-scale learned fusion)
 python -m src_v3.train --data-dir vesuvius-challenge-surface-detection --output-dir outputs_v3 --epochs 200 --amp
+
+# Pipeline nnU-Net (via Hugging Face Jobs)
+python -m src_nnunet.launch_hf_job --kaggle-token KGAT_xxx
+python -m src_nnunet.check_job 60  # monitor progress
 ```
 
 Key arguments:
@@ -136,20 +175,35 @@ volumen/
 │   ├── losses.py         #   CompositeLossV3 on fused output
 │   ├── dataset.py        #   (image, label, skeleton), patch_size=128
 │   └── ...               #   Own copies of shared modules
+├── src_nnunet/           # Pipeline nnU-Net (active, 1st place architecture)
+│   ├── convert_dataset.py#   Convert TIF data to nnU-Net format
+│   ├── predict.py        #   Inference + 1st place post-processing
+│   ├── train_hf.py       #   End-to-end training for HF Jobs
+│   ├── launch_hf_job.py  #   Launch training on Hugging Face Jobs
+│   └── monitor_hf_job.py #   Monitor job status and logs
 ├── aws/                  # EC2 launch scripts & IAM policies
 ├── configs/              # Training configuration
 ├── notebooks/            # Kaggle submission notebook
 ├── PIPELINES.md          # Multi-pipeline documentation
 ├── CLAUDE.md             # Agent instructions
 ├── COMPETITION_NOTES.md  # Competition rules & dataset analysis
-└── requirements.txt
+├── requirements.txt
+└── ../vesuvius_sinogram/ # Future: sinogram-domain surface detection
 ```
+
+## Related Projects
+
+- **[vesuvius_sinogram](../vesuvius_sinogram/)** — Future research direction: surface detection directly from raw CT sinogram (projection) data, bypassing the reconstruction-then-segment pipeline. Hypothesis: raw projections contain discriminative signal lost during filtered back-projection.
 
 ## Citation
 
 This project uses the EduceLab-Scrolls dataset:
 
 > S. Parker, C. Parsons, and W. B. Seales. "EduceLab-Scrolls: Verifiable Recovery of Text from Herculaneum Papyri using X-ray CT." arXiv:2304.02084, 2023.
+
+Post-processing adapted from the 1st place solution:
+
+> "1st Place Solution for the Vesuvius Challenge Surface Detection." Kaggle Competition Writeup, 2024. [Link](https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/1st-place-solution-for-the-vesuvius-challenge-su)
 
 ## License
 

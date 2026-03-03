@@ -4,7 +4,7 @@
 
 Brian Sheppard | February 2026
 
-> **Status:** This document is a research roadmap for future work. None of these experiments are currently in progress. V2 completed 200 epochs (best val_loss=0.6728). V3 paused at ~53 epochs due to NaN divergence (best val_loss=0.7016). All AWS instances terminated Feb 27, 2026. See `PIPELINES.md` for full pipeline status and `CLAUDE.md` for checkpoint locations.
+> **Status:** This document is a research roadmap for future work. None of these experiments are currently in progress. V2 completed 200 epochs (best val_loss=0.6728) and scored 0.390/0.409 (public/private) on Kaggle. V3 paused at ~53 epochs due to NaN divergence (best val_loss=0.7016). All AWS instances terminated Feb 27, 2026. A sibling project (`../vesuvius_sinogram/`) explores sinogram-domain detection as an alternative research direction. See `PIPELINES.md` for full pipeline status and `CLAUDE.md` for checkpoint locations.
 
 ---
 
@@ -23,10 +23,12 @@ All pipelines use the same validation split (scroll ID `26002`, 82 samples) and 
 | Architecture | Standard 3D U-Net | U-Net + Deep Supervision | Multi-Scale Fusion (3x UNet) |
 | Parameters | 27M | ~27M | ~15M |
 | Loss Function | CE+Dice, clDice, Boundary | Focal+Dice, SkeletonRecall, Boundary (4 scales) | Focal+Dice, SkeletonRecall, Boundary |
+| Post-processing | CC filter, bridges, holes, spacing | **1st place pipeline** (closing, patching, LUT, fill) | CC filter, bridges, holes, spacing |
 | GPU | T4 (g4dn.xlarge) | T4 (g4dn.xlarge) | A10G (g5.xlarge) |
 | Status | **Completed** (200 epochs, frozen) | **Completed** (200 epochs) | **Paused** (~53 epochs, NaN at ~55) |
 | Best Val Loss | 1.3639 | **0.6728** | 0.7016 |
 | Best Surface Dice | 0.1162 | **0.2538** | 0.2258 |
+| Kaggle Score | — | **0.390 / 0.409** (pub/priv) | — |
 | Epoch Time | ~60 min | ~57 min | ~134 min |
 
 > **Key observation:** V3 with 15M parameters learns faster per epoch than V2 with 27M parameters, suggesting the multi-scale fusion architecture provides a better inductive bias for scroll data. This motivates the question: what other architectural decisions could be made learnable to further improve this bias?
@@ -215,4 +217,4 @@ All project paths are relative to the repository root. If files have been moved 
 
 ---
 
-*Future research roadmap for the Volumen project. Not currently in progress. Last updated: February 9, 2026.*
+*Future research roadmap for the Volumen project. Not currently in progress. Last updated: February 28, 2026.*

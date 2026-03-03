@@ -2,16 +2,16 @@
 
 ## Overview
 
-This project contains **three completely independent** training/inference pipelines for the Vesuvius Challenge surface detection task. They share **no code** at the Python import level. Any pipeline can be deleted without affecting the others.
+This project contains **four completely independent** training/inference pipelines for the Vesuvius Challenge surface detection task. They share **no code** at the Python import level. Any pipeline can be deleted without affecting the others.
 
 ---
 
 ## ⚠️  CRITICAL: DO NOT MIX PIPELINES
 
-- **Never** import from `src/` inside `src_v2/` or `src_v3/`, or vice versa.
-- **Never** load a V1 checkpoint into a V2/V3 model or vice versa. The architectures differ.
-- **Never** share a `DataLoader` between pipelines. V2 and V3 return 3-tuples `(image, label, skeleton)`; V1 returns 2-tuples `(image, label)`.
-- Outputs are saved with different filenames (`best_model.pth`, `best_model_v2.pth`, `best_model_v3.pth`, etc.) to avoid accidental overwrites.
+- **Never** import from `src/` inside `src_v2/`, `src_v3/`, or `src_nnunet/`, or vice versa.
+- **Never** load a V1 checkpoint into a V2/V3/nnU-Net model or vice versa. The architectures differ.
+- **Never** share a `DataLoader` between pipelines. V2 and V3 return 3-tuples `(image, label, skeleton)`; V1 returns 2-tuples `(image, label)`; nnU-Net manages its own data loading.
+- Outputs are saved with different filenames (`best_model.pth`, `best_model_v2.pth`, `best_model_v3.pth`, nnU-Net's `checkpoint_final.pth`) to avoid accidental overwrites.
 
 ---
 
@@ -59,7 +59,7 @@ Input (B, 1, Z, Y, X)
 | Features   | `src_v2/features.py`| `GPUFeatureExtractor` (own copy, identical to V1)     |
 | Training   | `src_v2/train.py`   | Training loop adapted for deep supervision + skeleton |
 | Inference  | `src_v2/inference.py`| Sliding window + TTA (model returns logits in eval)  |
-| Postproc   | `src_v2/postprocess.py`| Same as V1 (own copy)                              |
+| Postproc   | `src_v2/postprocess.py`| 1st place post-processing pipeline (see below)      |
 | Evaluation | `src_v2/evaluate.py`| Same as V1 (own copy)                                 |
 
 ### How to train V2
@@ -109,9 +109,39 @@ L = 0.3 × (Focal + Dice) + 0.3 × SkeletonRecall + 0.2 × Boundary
 
 At each auxiliary scale, the same formula is applied to downsampled targets.
 
+### Post-processing (1st place solution)
+
+V2's `postprocess.py` implements the post-processing pipeline from the **1st place solution** for the Vesuvius Challenge Surface Detection competition ([writeup](https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/1st-place-solution-for-the-vesuvius-challenge-su)).
+
+The pipeline runs five steps:
+
+1. **Connected component filtering** — remove components smaller than `min_component_size` (default 500 voxels)
+2. **Per-sheet binary closing** — `scipy.ndimage.binary_closing` with a spherical footprint of radius 3, applied to each connected component individually (prevents merging nearby sheets)
+3. **Height-map patching** — for each sheet:
+   - Project to 2D along the axis giving the largest projected area
+   - Build height map (mean depth) and thickness map from the projection
+   - Identify internal gaps (inside the filled 2D projection, missing from the sheet)
+   - Fill gaps by linear interpolation along rows and columns separately
+   - Average the two fills weighted by inverse distance to gap edge
+   - Reconstruct 3D voxels from the patched height/thickness maps
+   - Discard the patch if it introduced new internal holes (safety check)
+4. **1-voxel hole plugging** — 256-entry lookup table over 2×2×2 neighborhoods that detects face-diagonal gaps (two foreground voxels at opposite corners of a face with both intermediate gap voxels empty) and adds one bridging voxel per gap for 6-connected watertightness
+5. **Global `binary_fill_holes`** — `scipy.ndimage.binary_fill_holes` for remaining enclosed cavities of any size
+
+The legacy functions (`remove_bridges`, `fill_small_holes`, `spacing_validation`) are retained as importable for backward compatibility but are not part of the default pipeline.
+
+### Kaggle submission results
+
+| Version | Description | Public LB | Private LB | Notes |
+|---------|-------------|-----------|------------|-------|
+| V5 | Original postproc, TTA=True | 0.390 | 0.409 | Scored (before deadline) |
+| V8 | 1st-place postproc (late) | — | — | After deadline, not scored |
+
+Scored submission: **0.390 public / 0.409 private**, ~1240th on private LB. The model scored higher on the unseen 80% private data than on the 20% public test, indicating good generalization.
+
 ### Status
 
-**Frozen.** Completed 200 epochs on AWS (g4dn.xlarge, T4 16GB). Best val_loss: **0.6728**, surface Dice: **0.2538** — the best-performing pipeline overall. Do not modify these files. Checkpoints: `outputs_aws/v2/best_model_v2.pth`, `checkpoint_v2_epoch25.pth`, `checkpoint_v2_epoch200.pth`.
+**Frozen.** Completed 200 epochs on AWS (g4dn.xlarge, T4 16GB). Best val_loss: **0.6728**, surface Dice: **0.2538** — the best-performing pipeline overall. Post-processing updated to 1st place pipeline (Feb 2026). Checkpoints: `outputs_aws/v2/best_model_v2.pth`, `checkpoint_v2_epoch25.pth`, `checkpoint_v2_epoch200.pth`.
 
 ---
 
@@ -154,9 +184,104 @@ The fusion layer learns when to trust fine vs coarse scale. Checkpoints include 
 
 ---
 
+## Pipeline nnU-Net — `src_nnunet/`
+
+| Component  | File                       | Description                                           |
+|------------|----------------------------|-------------------------------------------------------|
+| Data Conv  | `src_nnunet/convert_dataset.py` | Convert TIF data to nnU-Net v2 format (symlinks + spacing JSONs) |
+| Inference  | `src_nnunet/predict.py`    | nnU-Net prediction + 1st place post-processing         |
+| HF Train   | `src_nnunet/train_hf.py`   | End-to-end training script for HF Jobs (download → convert → preprocess → train → upload) |
+| HF Launch  | `src_nnunet/launch_hf_job.py` | Launch a training job on Hugging Face Jobs          |
+| HF Monitor | `src_nnunet/monitor_hf_job.py` | Monitor job status and stream logs                 |
+| HF Check   | `src_nnunet/check_job.py`  | Quick job status check and log tail                    |
+| Training   | `notebooks/nnunet_training.ipynb` | Kaggle training notebook (installs nnunetv2, converts data, trains) |
+| Submission | `notebooks/submission_nnunet.ipynb` | Kaggle submission notebook                          |
+| Deps       | `src_nnunet/requirements.txt` | Pipeline-specific dependencies (includes `nnunetv2`)  |
+
+### Why nnU-Net
+
+The 1st place team used nnU-Net v2. Their single model at 250 epochs scored **0.577/0.614** (public/private), compared to our custom UNet3DDeepSup at **0.390/0.409**. The architecture difference alone accounts for ~0.2 in Dice score.
+
+### How to train nnU-Net
+
+```bash
+# 1. Convert data
+python -m src_nnunet.convert_dataset \
+    --data-dir /path/to/vesuvius-challenge-surface-detection \
+    --output-dir /path/to/nnUNet_raw/Dataset011_Vesuvius
+
+# 2. Plan and preprocess (auto-configures patch size, batch size, normalization)
+nnUNetv2_plan_and_preprocess -d 011 --verify_dataset_integrity
+
+# 3. Train (200 epochs, all data, no cross-validation)
+nnUNetv2_train 011 3d_fullres all -tr nnUNetTrainer_200epochs --npz
+```
+
+Or use `notebooks/nnunet_training.ipynb` on Kaggle (free GPU, data already available).
+
+**Training on Hugging Face Jobs** (recommended for full training runs):
+
+```bash
+python -m src_nnunet.launch_hf_job --kaggle-token KGAT_xxx
+python -m src_nnunet.check_job 60  # monitor progress
+```
+
+See `src_nnunet/README.md` for details on flavors, timeouts, and monitoring.
+
+### Architecture
+
+nnU-Net v2 automatically configures the entire segmentation pipeline based on dataset properties:
+
+```
+Input: 3D TIF volume (raw CT)
+  → nnU-Net auto-preprocessing (normalization, resampling)
+  → nnU-Net 3D U-Net (auto-configured patch size, batch size, architecture)
+  → Softmax → 3-class segmentation (background, surface, interior)
+  → 1st place post-processing (binary closing, height-map patching, hole plugging, fill holes)
+  → Binary surface mask
+```
+
+Key differences from V1/V2/V3:
+- **No custom feature extractor** — nnU-Net handles preprocessing natively
+- **Auto-configured** — patch size, batch size, network depth, and augmentation are determined from dataset statistics
+- **Built-in TTA** — mirroring-based test-time augmentation
+- **nnU-Net's own checkpoint format** — not compatible with V1/V2/V3 models
+
+### Post-processing
+
+Uses the same 1st place post-processing pipeline as V2 (inlined in `src_nnunet/predict.py` and `notebooks/submission_nnunet.ipynb` for pipeline isolation):
+1. Connected component filtering (min 500 voxels)
+2. Per-sheet binary closing (spherical footprint, radius 3)
+3. Height-map patching (projection + interpolation)
+4. LUT-based 1-voxel hole plugging
+5. Global `binary_fill_holes`
+
+### Training strategy (matching 1st place)
+
+The 1st place team's approach:
+1. **Baseline:** Patch size 128, batch size 2, 4000 epochs (but 250 epochs was nearly identical in score)
+2. **Fine-tune:** Larger patch sizes (192, 256) for 250 epochs each
+3. **Ensemble:** Weighted combination of 4 models
+
+Our initial plan: Train for **200 epochs** at default auto-configured settings. The 1st place team's 4000-epoch model scored 0.613 private vs 0.614 private at 250 epochs — diminishing returns beyond ~200 epochs.
+
+### Status
+
+**Active — training in progress.** Pipeline code is complete. Training running on Hugging Face Jobs (A10G GPU, 200 epochs). Model will be uploaded to `huggingface.co/bshepp/vesuvius-nnunet` on completion.
+
+### References
+
+- [nnU-Net v2 GitHub](https://github.com/MIC-DKFZ/nnUNet)
+- [1st Place Solution Writeup](https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/1st-place-solution-for-the-vesuvius-challenge-su)
+- [Baseline Notebook (jirkaborovec)](https://www.kaggle.com/code/jirkaborovec/surface-train-inference-3d-segm-gpu-augment)
+
+---
+
 ## File duplication is intentional
 
-`src_v2/` and `src_v3/` each have their own copies of `features.py`, `postprocess.py`, and `evaluate.py`. This is **by design**: it ensures complete isolation. Modify V2 or V3 files without risk of breaking V1.
+`src_v2/`, `src_v3/`, and `src_nnunet/` each have their own copies of shared code (e.g., post-processing). This is **by design**: it ensures complete isolation. Modify one pipeline without risk of breaking another.
+
+**Note:** V2's `postprocess.py` has diverged from V1's — it implements the 1st place post-processing pipeline. V1 and V3 retain the original post-processing (CC filtering, bridge removal, hole filling, spacing validation). The nnU-Net pipeline's `predict.py` inlines the same 1st place post-processing code.
 
 ---
 
@@ -183,4 +308,4 @@ V2 checkpoints include `"pipeline": "v2"`; V3 includes `"pipeline": "v3"`. V1 ch
 
 ## Dependencies
 
-All pipelines require the packages listed in `requirements.txt`. V2 and V3 additionally require `scikit-image` (for `skimage.morphology.skeletonize`).
+All pipelines require the packages listed in `requirements.txt`. V2 and V3 additionally require `scikit-image` (for `skimage.morphology.skeletonize`). The nnU-Net pipeline has its own `src_nnunet/requirements.txt` which includes `nnunetv2`.
