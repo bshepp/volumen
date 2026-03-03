@@ -4,7 +4,7 @@
 
 Brian Sheppard | February 2026
 
-> **Status:** This document is a research roadmap for future work. None of these experiments are currently in progress. V2 completed 200 epochs (best val_loss=0.6728) and scored 0.390/0.409 (public/private) on Kaggle. V3 paused at ~53 epochs due to NaN divergence (best val_loss=0.7016). All AWS instances terminated Feb 27, 2026. A sibling project (`../vesuvius_sinogram/`) explores sinogram-domain detection as an alternative research direction. See `PIPELINES.md` for full pipeline status and `CLAUDE.md` for checkpoint locations.
+> **Status:** This document is a research roadmap for future work. None of these experiments are currently in progress. V2 completed 200 epochs (best val_loss=0.6728) and scored 0.405/0.426 (public/private) on Kaggle. V3 paused at ~53 epochs due to NaN divergence (best val_loss=0.7016). All AWS instances terminated Feb 27, 2026. A sibling project (`../vesuvius_sinogram/`) explores sinogram-domain detection as an alternative research direction. See `PIPELINES.md` for full pipeline status and `CLAUDE.md` for checkpoint locations.
 
 ---
 
@@ -28,7 +28,7 @@ All pipelines use the same validation split (scroll ID `26002`, 82 samples) and 
 | Status | **Completed** (200 epochs, frozen) | **Completed** (200 epochs) | **Paused** (~53 epochs, NaN at ~55) |
 | Best Val Loss | 1.3639 | **0.6728** | 0.7016 |
 | Best Surface Dice | 0.1162 | **0.2538** | 0.2258 |
-| Kaggle Score | — | **0.390 / 0.409** (pub/priv) | — |
+| Kaggle Score | — | **0.405 / 0.426** (pub/priv) | — |
 | Epoch Time | ~60 min | ~57 min | ~134 min |
 
 > **Key observation:** V3 with 15M parameters learns faster per epoch than V2 with 27M parameters, suggesting the multi-scale fusion architecture provides a better inductive bias for scroll data. This motivates the question: what other architectural decisions could be made learnable to further improve this bias?

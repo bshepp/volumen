@@ -1,5 +1,7 @@
 # AWS Training Guide for Vesuvius Surface Detection
 
+**Alternative compute:** See `COMPUTE_OPTIONS.md` for HF Pro, Colab Pro, and Kaggle. AWS instances are currently terminated; this guide is preserved for relaunch.
+
 ## Upload code to S3 (before the next run)
 
 The instance gets code from S3 at launch (see `aws/user-data.sh`). To deploy your latest local code so the **next** run uses it:
@@ -142,20 +144,22 @@ The best model for submission is **V2** (`outputs_aws/v2/best_model_v2.pth`, val
 ```
 MODEL_DIR = /kaggle/input/models/briansheppard/vesuvius-v2-weights/pytorch/default/1
 PATCH_SIZE = 64        # reduced from 128 to fit T4 GPU memory
-STRIDE = 32
-BATCH_SIZE = 1
+STRIDE = 48            # 25% overlap — good balance of speed vs quality
+BATCH_SIZE = 2
 USE_TTA = True         # 8-flip test-time augmentation
 USE_POSTPROCESS = True # 1st place post-processing pipeline
 ```
 
 ### Results
 
-| Version | Description | Public LB | Private LB | Notes |
-|---------|-------------|-----------|------------|-------|
-| V5 | Original postproc, TTA=True | 0.390 | 0.409 | Scored |
-| V6-V9 | 1st-place postproc, cuda/amp variants | — | — | Late, not scored |
+| Version | Date | Description | Public LB | Private LB | Notes |
+|---------|------|-------------|-----------|------------|-------|
+| V5 | Feb 28 | Original postproc, TTA=True | 0.390 | 0.409 | First scored submission |
+| V6–V9 | Feb 28–Mar 1 | 1st-place postproc, cuda/amp variants | — | — | Failed (timeouts/errors) |
+| **V10** | **Mar 2** | **1st-place postproc + tuned settings** | **0.405** | **0.426** | **Best submission** |
+| V11–V12 | Mar 2–3 | Latest iterations | — | — | Pending/failed |
 
-Scored submission: **0.390 public / 0.409 private**, ~1240th on private LB.
+Best submission: **0.405 public / 0.426 private** (V10), up from 0.390/0.409 (V5). 11 total submissions, 2 scored.
 
 ### Lessons learned
 

@@ -132,12 +132,14 @@ The legacy functions (`remove_bridges`, `fill_small_holes`, `spacing_validation`
 
 ### Kaggle submission results
 
-| Version | Description | Public LB | Private LB | Notes |
-|---------|-------------|-----------|------------|-------|
-| V5 | Original postproc, TTA=True | 0.390 | 0.409 | Scored (before deadline) |
-| V8 | 1st-place postproc (late) | — | — | After deadline, not scored |
+| Version | Date | Description | Public LB | Private LB | Notes |
+|---------|------|-------------|-----------|------------|-------|
+| V5 | Feb 28 | Original postproc, TTA=True | 0.390 | 0.409 | First scored submission |
+| V6–V9 | Feb 28–Mar 1 | 1st-place postproc, cuda/amp variants | — | — | Failed (timeouts/errors) |
+| **V10** | **Mar 2** | **1st-place postproc + tuned settings** | **0.405** | **0.426** | **Best submission** |
+| V11–V12 | Mar 2–3 | Latest iterations | — | — | Pending/failed |
 
-Scored submission: **0.390 public / 0.409 private**, ~1240th on private LB. The model scored higher on the unseen 80% private data than on the 20% public test, indicating good generalization.
+Best submission: **0.405 public / 0.426 private** (V10), up from 0.390/0.409 (V5). 11 total submissions, 2 scored. 1st-place post-processing added +0.017 on private LB. Private score consistently higher than public — good generalization.
 
 ### Status
 
@@ -200,7 +202,7 @@ The fusion layer learns when to trust fine vs coarse scale. Checkpoints include 
 
 ### Why nnU-Net
 
-The 1st place team used nnU-Net v2. Their single model at 250 epochs scored **0.577/0.614** (public/private), compared to our custom UNet3DDeepSup at **0.390/0.409**. The architecture difference alone accounts for ~0.2 in Dice score.
+The 1st place team used nnU-Net v2. Their single model at 250 epochs scored **0.577/0.614** (public/private), compared to our custom UNet3DDeepSup at **0.405/0.426**. The architecture difference alone accounts for ~0.17 in Dice score.
 
 ### How to train nnU-Net
 

@@ -4,7 +4,7 @@ Self-configuring 3D segmentation using [nnU-Net v2](https://github.com/MIC-DKFZ/
 
 ## Why nnU-Net
 
-The 1st place team's single nnU-Net model scored **0.577/0.614** (public/private) at 250 epochs — far above our custom UNet3DDeepSup at **0.390/0.409**. nnU-Net automatically configures preprocessing, architecture, patch size, batch size, and augmentation from the dataset properties.
+The 1st place team's single nnU-Net model scored **0.577/0.614** (public/private) at 250 epochs — far above our custom UNet3DDeepSup at **0.405/0.426**. nnU-Net automatically configures preprocessing, architecture, patch size, batch size, and augmentation from the dataset properties.
 
 ## Setup
 

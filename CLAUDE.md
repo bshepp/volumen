@@ -23,14 +23,17 @@ This project has **four completely independent pipelines**. Read `PIPELINES.md` 
 | V2       | **0.6728**   | 0.2538            | 200/200          |
 | V3       | 0.7016       | 0.2258            | ~53/200 (NaN'd)  |
 
-### Kaggle Submission Results (Feb 2026)
+### Kaggle Submission Results (Feb–Mar 2026)
 
-| Version | Description | Public LB | Private LB |
-|---------|-------------|-----------|------------|
-| V5 | V2 + original postproc, TTA=True | 0.390 | 0.409 |
-| V8 | V2 + 1st-place postproc (late) | — | — |
+| Version | Date | Description | Public LB | Private LB |
+|---------|------|-------------|-----------|------------|
+| V3 | Feb 27 | First attempt | — | — |
+| V5 | Feb 28 | V2 + original postproc, TTA=True | 0.390 | 0.409 |
+| V6–V9 | Feb 28–Mar 1 | 1st-place postproc, cuda/amp variants | — | — |
+| **V10** | **Mar 2** | **V2 + 1st-place postproc + tuned settings** | **0.405** | **0.426** |
+| V11–V12 | Mar 2–3 | Latest iterations | — | — |
 
-Scored submission: **0.390 public / 0.409 private**, ~1240th on private LB. Private score higher than public — good generalization. Late submissions (V6-V9, with 1st-place post-processing and cuda/amp) completed but are not scored.
+Best submission: **0.405 public / 0.426 private** (V10), up from 0.390/0.409 (V5). 11 total submissions, 2 scored. 1st-place post-processing added +0.017 on private LB. V6–V9 failed (timeouts/errors). Private score consistently higher than public — good generalization.
 
 ### 1st Place Post-Processing (implemented in V2)
 
@@ -70,6 +73,7 @@ Checkpoints are also backed up in S3: `s3://vesuvius-challenge-training-290318/`
 ## Key Files
 
 - **`PIPELINES.md`** — Primary reference: full documentation of all pipelines, architecture diagrams, training commands, and isolation rules. Read this before making any pipeline changes.
+- **`COMPUTE_OPTIONS.md`** — HF Pro, Colab Pro, Kaggle, AWS: when to use each, Colab Pro quota link, publishing opportunities.
 - **`src_nnunet/README.md`** — nnU-Net pipeline setup, training (local and HF Jobs), and inference guide.
 - **`adaptive_architecture_research_path.md`** — Future research roadmap for learnable architecture parameters. Not currently in progress.
 - **`../vesuvius_sinogram/`** — Sibling project: future research on sinogram-domain surface detection (raw CT projections). Pre-development.
@@ -101,6 +105,13 @@ nnUNetv2_train 011 3d_fullres all -tr nnUNetTrainer_200epochs --npz
 python -m src_nnunet.launch_hf_job --kaggle-token KGAT_xxx
 python -m src_nnunet.check_job 60  # monitor progress
 ```
+
+## Compute (HF Pro, Colab Pro, Kaggle)
+
+- **HF Jobs** — nnU-Net training. Pre-paid credits. See `src_nnunet/launch_hf_job.py`.
+- **HF Sessions** — 30 hrs/week GPU; link Colab Pro for more quota. Good for V2/V3 notebooks.
+- **Kaggle** — Submissions, 30 hrs/week. See `notebooks/submission.ipynb`.
+- Full breakdown: `COMPUTE_OPTIONS.md`.
 
 ## AWS
 

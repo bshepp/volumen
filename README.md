@@ -63,15 +63,19 @@ V2 is the best-performing custom pipeline. V3 training paused due to NaN diverge
 
 ### Kaggle Submission Results
 
-| Version | Description | Public LB | Private LB |
-|---------|-------------|-----------|------------|
-| V5 | V2 + original postproc, TTA=True | 0.390 | 0.409 |
-| V6 | V2 + TTA=True (late) | — | — |
-| V7 | V2 + cuda, amp=True (late) | — | — |
-| V8 | V2 + 1st-place post-processing (late) | — | — |
-| V9 | V2 + latest (late) | — | — |
+| Version | Date | Description | Public LB | Private LB |
+|---------|------|-------------|-----------|------------|
+| V3 | Feb 27 | First attempt | — | — |
+| V5 | Feb 28 | V2 + original postproc, TTA=True | 0.390 | 0.409 |
+| V6 | Feb 28 | V2 + TTA=True | — | — |
+| V7 | Mar 1 | V2 + cuda, amp=True | — | — |
+| V8 | Mar 1 | V2 + 1st-place post-processing | — | — |
+| V9 | Mar 1 | V2 + latest | — | — |
+| **V10** | **Mar 2** | **V2 + 1st-place postproc + tuned settings** | **0.405** | **0.426** |
+| V11 | Mar 2 | Latest iteration | — | — |
+| V12 | Mar 3 | Latest iteration | — | — |
 
-Scored submission: **0.390 public / 0.409 private** (~1240th on private LB). The model scored *higher* on the unseen 80% private data than on the 20% public test, indicating strong generalization. Late submissions (after deadline) completed successfully but are not scored.
+Best submission: **0.405 public / 0.426 private** (V10, ~1240th on private LB), up from 0.390/0.409 (V5). 11 total submissions, 2 scored. The 1st-place post-processing added +0.017 on private LB. The model scored *higher* on the unseen 80% private data than on the 20% public test in both scored runs, indicating strong generalization.
 
 ## Competition Metric
 
@@ -102,6 +106,8 @@ pip install -r requirements.txt
 **Requirements:** Python 3.10+, PyTorch 2.0+, CUDA-capable GPU (tested on Tesla T4 16GB, NVIDIA A10G 24GB).
 
 **Data:** Download from the [Kaggle competition page](https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/data) and place in `vesuvius-challenge-surface-detection/`.
+
+**Compute:** See [COMPUTE_OPTIONS.md](COMPUTE_OPTIONS.md) for HF Pro, Colab Pro, Kaggle, and AWS — when to use each for training and inference.
 
 ## Training
 
