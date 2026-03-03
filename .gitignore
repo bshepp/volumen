@@ -1,65 +1,28 @@
-# ============================================
-# Vesuvius Challenge - .gitignore
-# ============================================
-
-# --- Python ---
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
 *.egg-info/
-*.egg
 dist/
 build/
-.eggs/
 
-# --- Virtual environments ---
-venv/
-env/
-.venv/
-.env/
+# Secrets / environment
+.env
 
-# --- IDE / Editor ---
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# IDE
 .cursor/
 
-# --- OS ---
-Thumbs.db
-Desktop.ini
-.DS_Store
+# Data (large)
+vesuvius-challenge-surface-detection/
+vesuvius-challenge-surface-detection.zip
 
-# --- Competition data (large TIFF volumes, ~42GB total) ---
-vesuvius-challenge-surface-detection/train_images/
-vesuvius-challenge-surface-detection/train_labels/
-vesuvius-challenge-surface-detection/deprecated_train_images/
-vesuvius-challenge-surface-detection/deprecated_train_labels/
-vesuvius-challenge-surface-detection/test/
-*.tif
-*.tiff
-*.zip
-
-# --- Model checkpoints and outputs (large binaries) ---
-outputs/
-outputs_v2/
-outputs_v3/
-outputs_local/
+# Training outputs
 outputs_aws/
-*.pth
-*.pt
-*.onnx
+outputs_local/
 
-# --- Jupyter ---
-.ipynb_checkpoints/
-notebooks/.ipynb_checkpoints/
+# Reference pages (use Kaggle links instead)
+other_teams_work/
 
-# --- AWS session artifacts (contain instance IDs, command IDs) ---
+# AWS SSM output (may contain instance details)
 aws/ssm-*.json
 aws/s3_images.txt
-
-# --- Logs ---
-*.log
-nohup.out
